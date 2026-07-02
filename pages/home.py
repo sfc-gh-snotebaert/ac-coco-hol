@@ -42,7 +42,7 @@ pipeline. Before this release goes to production, the team must:
 - Build reusable CoCo skills the team can use every sprint
 
 You are a **data engineer** on this team. **Cortex Code** is your AI-powered assistant
-running directly in your terminal or IDE.
+running directly in **Snowsight**.
 """
 )
 
@@ -81,12 +81,9 @@ st.markdown("---")
 st.markdown("## :material/checklist: Prerequisites")
 st.markdown(
     """
-Before starting, make sure you have:
+The only prerequisite for this lab is a **Snowflake trial account** in the **AWS US West** region.
 
-- A **Snowflake account** with ACCOUNTADMIN role (or a role that can CREATE DATABASE)
-- **Cortex Code (CoCo)** installed — CLI or Desktop IDE
-- The lab repository cloned locally
-- `snow` CLI configured with a working connection profile
+[Sign up for a free Snowflake trial →](https://trial.snowflake.com)
 
 The **Getting Started** page walks through environment setup step by step.
 """

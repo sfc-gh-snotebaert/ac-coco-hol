@@ -13,7 +13,7 @@ st.markdown("---")
 
 with st.container(border=True):
     st.markdown(
-        ":material/info: **Lab context:** `AC_HOL_UAT.FLIGHTS` is a deliberately imperfect copy of PROD: "
+        ":material/info: **Lab context:** `AC_HOL_DB.AC_HOL_UAT.FLIGHTS` is a deliberately imperfect copy of PROD: "
         "**2 columns removed** (`aircraft_type`, `delay_reason`) and **~550 fewer rows**. "
         "Your job is to catch these issues before they reach production."
     )
@@ -45,7 +45,7 @@ coco_prompt(
     "3.1",
     "Compare PROD and UAT Environments",
     """\
-Compare AC_HOL_DB.OPERATIONS.FLIGHTS (PROD) with AC_HOL_UAT.FLIGHTS (UAT).
+Compare AC_HOL_DB.OPERATIONS.FLIGHTS (PROD) with AC_HOL_DB.AC_HOL_UAT.FLIGHTS (UAT).
 Check:
 1. Schema differences — which columns exist in PROD but not UAT (or vice versa)?
 2. Row count difference
@@ -78,13 +78,13 @@ coco_prompt(
     "Generate regression_test.sql",
     """\
 Generate a SQL regression test script called regression_test.sql that I can run
-before every release to compare AC_HOL_UAT.FLIGHTS with AC_HOL_DB.OPERATIONS.FLIGHTS.
+before every release to compare AC_HOL_DB.AC_HOL_UAT.FLIGHTS with AC_HOL_DB.OPERATIONS.FLIGHTS.
 The script should:
 - Use CASE-based checks that display PASS or FAIL for each assertion
 - Check: row count within 1% tolerance, column schema matches, NULL rates within 2%,
   status distribution within 3%, no new unexpected status values
 - Print PASS/FAIL for each check
-Save the file to sql/regression_test.sql\
+Save the script as regression_test.sql\
 """,
 )
 
@@ -96,7 +96,7 @@ with st.expander(":material/code: Expected script pattern"):
 -- Run before every pipeline release
 
 SET prod_count = (SELECT COUNT(*) FROM AC_HOL_DB.OPERATIONS.FLIGHTS);
-SET uat_count  = (SELECT COUNT(*) FROM AC_HOL_UAT.FLIGHTS);
+SET uat_count  = (SELECT COUNT(*) FROM AC_HOL_DB.AC_HOL_UAT.FLIGHTS);
 
 -- Check 1: Row count within 1% tolerance
 SELECT
@@ -115,8 +115,8 @@ FROM (
     WHERE table_schema = 'OPERATIONS' AND table_name = 'FLIGHTS'
 ) prod
 LEFT JOIN (
-    SELECT column_name FROM AC_HOL_UAT.INFORMATION_SCHEMA.COLUMNS
-    WHERE table_name = 'FLIGHTS'
+    SELECT column_name FROM AC_HOL_DB.INFORMATION_SCHEMA.COLUMNS
+    WHERE table_schema = 'AC_HOL_UAT' AND table_name = 'FLIGHTS'
 ) uat USING (column_name);\
 """,
         language="sql",
@@ -137,7 +137,7 @@ coco_prompt(
     "3.3",
     "Create Project Governance Rules",
     """\
-Create an AGENTS.md file in this project directory with these Air Canada data governance rules:
+Create an AGENTS.md file for this CoCo session with these Air Canada data governance rules:
 1. Always compare UAT vs PROD row counts before any data migration or pipeline deployment
 2. Never run INSERT, UPDATE, or DELETE on OPERATIONS or BOOKINGS schemas without explicit user confirmation
 3. Always include schema name prefix when referencing tables (never bare table names)
@@ -172,7 +172,7 @@ st.markdown(
     """
 - **Schema comparison** — Querying `INFORMATION_SCHEMA.COLUMNS` across two environments reveals column drift before it causes runtime errors
 - **SQL assertions** — `CASE` statements with tolerance thresholds (`< 0.01` for row count, etc.) produce human-readable PASS/FAIL output without raising exceptions
-- **AGENTS.md** — Loaded once per session; enforces team conventions automatically; stored in the project root alongside your code
+- **AGENTS.md** — Loaded at the start of each CoCo conversation; enforces team conventions automatically
 - **Rule-based blocking** — CoCo respects explicit "never" rules and asks for confirmation rather than proceeding silently
 """
 )

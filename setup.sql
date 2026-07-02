@@ -13,7 +13,7 @@ CREATE DATABASE IF NOT EXISTS AC_HOL_DB;
 CREATE SCHEMA IF NOT EXISTS AC_HOL_DB.OPERATIONS;
 CREATE SCHEMA IF NOT EXISTS AC_HOL_DB.BOOKINGS;
 CREATE SCHEMA IF NOT EXISTS AC_HOL_DB.LOYALTY;
-CREATE SCHEMA IF NOT EXISTS AC_HOL_UAT;  -- simulates UAT environment
+CREATE SCHEMA IF NOT EXISTS AC_HOL_DB.AC_HOL_UAT;  -- simulates UAT environment
 
 -- ---------------------------------------------------------------------------
 -- 2. OPERATIONS.FLIGHTS
@@ -36,16 +36,16 @@ CREATE OR REPLACE TABLE AC_HOL_DB.OPERATIONS.FLIGHTS (
     load_date        TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP
 );
 
--- Seed data: 10 000 rows using Snowflake generator
+-- Seed data: 10,000 rows using deterministic index-based random selection
 INSERT INTO AC_HOL_DB.OPERATIONS.FLIGHTS (
     flight_id, departure_airport, arrival_airport,
     scheduled_departure, actual_departure,
-    scheduled_arrival,   actual_arrival,
+    scheduled_arrival, actual_arrival,
     aircraft_type, status, delay_minutes, delay_reason,
     passengers_boarded, capacity
 )
 WITH airports AS (
-    SELECT column1 AS code FROM (VALUES
+    SELECT column1 AS code, ROW_NUMBER() OVER (ORDER BY column1) AS idx FROM (VALUES
         ('YYZ'),('YVR'),('YUL'),('YYC'),('YEG'),
         ('YOW'),('YHZ'),('YWG'),('YQR'),('YXE'),
         ('LAX'),('JFK'),('ORD'),('LHR'),('CDG'),
@@ -53,69 +53,56 @@ WITH airports AS (
     ) t
 ),
 aircraft AS (
-    SELECT column1 AS atype FROM (VALUES
+    SELECT column1 AS atype, ROW_NUMBER() OVER (ORDER BY column1) AS idx FROM (VALUES
         ('B737'),('B787'),('A319'),('A320'),('A321'),('E190'),('CRJ9')
-    ) t
-),
-reasons AS (
-    SELECT column1 AS reason FROM (VALUES
-        ('WEATHER'),('ATC_DELAY'),('CREW'),('MAINTENANCE'),
-        ('LATE_ARRIVAL'),('FUELING'),('CATERING')
     ) t
 ),
 base AS (
     SELECT
         ROW_NUMBER() OVER (ORDER BY SEQ8()) AS rn,
-        DATEADD('minute', (UNIFORM(0, 87600, RANDOM()))::INT, '2024-07-01'::TIMESTAMP_NTZ) AS sched_dep
-    FROM TABLE(GENERATOR(ROWCOUNT => 10000))
-),
-raw AS (
-    SELECT
-        rn,
-        'AC' || LPAD((UNIFORM(100, 9999, RANDOM()))::VARCHAR, 4, '0') AS flight_id,
-        dep.code AS dep_ap,
-        arr.code AS arr_ap,
-        sched_dep,
-        DATEADD('minute', (UNIFORM(-5, 180, RANDOM()))::INT, sched_dep) AS act_dep,
-        DATEADD('minute', (UNIFORM(60, 600, RANDOM()))::INT, sched_dep) AS sched_arr,
-        ac.atype AS aircraft_type,
-        CASE
-            WHEN UNIFORM(1, 10, RANDOM()) <= 7 THEN 'ON_TIME'
-            WHEN UNIFORM(1, 10, RANDOM()) <= 9 THEN 'DELAYED'
-            ELSE 'CANCELLED'
-        END AS status,
-        UNIFORM(1, 5, RANDOM()) AS dep_idx,
-        UNIFORM(1, 5, RANDOM()) AS arr_idx,
+        DATEADD('minute', (UNIFORM(0, 87600, RANDOM()))::INT, '2024-07-01'::TIMESTAMP_NTZ) AS sched_dep,
+        UNIFORM(1, 20, RANDOM()) AS dep_idx,
+        UNIFORM(1, 20, RANDOM()) AS arr_idx,
         UNIFORM(1, 7, RANDOM()) AS ac_idx,
-        UNIFORM(1, 7, RANDOM()) AS reason_idx
-    FROM base
-    JOIN airports dep ON dep.code = (SELECT code FROM airports ORDER BY RANDOM() LIMIT 1)
-    JOIN airports arr ON arr.code != dep.code AND arr.code = (SELECT code FROM airports ORDER BY RANDOM() LIMIT 1)
-    JOIN aircraft  ac  ON ac.atype = (SELECT atype FROM aircraft ORDER BY RANDOM() LIMIT 1)
+        CASE
+            WHEN UNIFORM(1, 100, RANDOM()) <= 70 THEN 'ON_TIME'
+            WHEN UNIFORM(1, 100, RANDOM()) <= 85 THEN 'DELAYED'
+            ELSE 'CANCELLED'
+        END AS status
+    FROM TABLE(GENERATOR(ROWCOUNT => 10000))
 )
 SELECT
-    r.flight_id,
-    r.dep_ap,
-    r.arr_ap,
-    r.sched_dep,
-    r.act_dep,
-    r.sched_arr,
-    DATEADD('minute', DATEDIFF('minute', r.sched_dep, r.act_dep) + (UNIFORM(30, 60, RANDOM()))::INT, r.sched_arr) AS act_arr,
-    r.aircraft_type,
-    r.status,
-    CASE r.status
-        WHEN 'ON_TIME'   THEN 0
-        WHEN 'DELAYED'   THEN UNIFORM(15, 240, RANDOM())::INT
+    'AC' || LPAD(rn::VARCHAR, 5, '0') AS flight_id,
+    dep.code AS departure_airport,
+    arr.code AS arrival_airport,
+    b.sched_dep AS scheduled_departure,
+    DATEADD('minute', (UNIFORM(-5, 180, RANDOM()))::INT, b.sched_dep) AS actual_departure,
+    DATEADD('minute', (UNIFORM(60, 600, RANDOM()))::INT, b.sched_dep) AS scheduled_arrival,
+    DATEADD('minute', (UNIFORM(90, 660, RANDOM()))::INT, b.sched_dep) AS actual_arrival,
+    ac.atype AS aircraft_type,
+    b.status,
+    CASE b.status
+        WHEN 'ON_TIME' THEN 0
+        WHEN 'DELAYED' THEN UNIFORM(15, 240, RANDOM())::INT
         ELSE NULL
     END AS delay_minutes,
-    -- Intentional DQ issue: ~200 DELAYED flights have NULL delay_reason
+    -- Intentional DQ issue: ~8% of DELAYED flights have NULL delay_reason (~200 rows)
     CASE
-        WHEN r.status = 'DELAYED' AND UNIFORM(1, 10, RANDOM()) > 8 THEN NULL
-        WHEN r.status = 'DELAYED' THEN (SELECT reason FROM (VALUES('WEATHER'),('ATC_DELAY'),('CREW'),('MAINTENANCE'),('LATE_ARRIVAL'),('FUELING'),('CATERING')) t(reason) ORDER BY RANDOM() LIMIT 1)
+        WHEN b.status = 'DELAYED' AND UNIFORM(1, 100, RANDOM()) <= 8 THEN NULL
+        WHEN b.status = 'DELAYED' THEN
+            CASE UNIFORM(1, 7, RANDOM())
+                WHEN 1 THEN 'WEATHER'
+                WHEN 2 THEN 'ATC_DELAY'
+                WHEN 3 THEN 'CREW'
+                WHEN 4 THEN 'MAINTENANCE'
+                WHEN 5 THEN 'LATE_ARRIVAL'
+                WHEN 6 THEN 'FUELING'
+                ELSE 'CATERING'
+            END
         ELSE NULL
     END AS delay_reason,
     UNIFORM(50, 180, RANDOM())::INT AS passengers_boarded,
-    CASE r.aircraft_type
+    CASE ac.atype
         WHEN 'B787' THEN 298
         WHEN 'B737' THEN 168
         WHEN 'A321' THEN 182
@@ -124,10 +111,19 @@ SELECT
         WHEN 'E190' THEN 97
         ELSE 75
     END AS capacity
-FROM raw r;
+FROM base b
+JOIN airports dep ON dep.idx = b.dep_idx
+JOIN airports arr ON arr.idx = CASE WHEN b.arr_idx = b.dep_idx THEN MOD(b.arr_idx, 20) + 1 ELSE b.arr_idx END
+JOIN aircraft ac ON ac.idx = b.ac_idx;
 
 -- Inject ~50 duplicate flight_ids (same flight_id, different rows — simulates pipeline bug)
-INSERT INTO AC_HOL_DB.OPERATIONS.FLIGHTS
+INSERT INTO AC_HOL_DB.OPERATIONS.FLIGHTS (
+    flight_id, departure_airport, arrival_airport,
+    scheduled_departure, actual_departure,
+    scheduled_arrival, actual_arrival,
+    aircraft_type, status, delay_minutes, delay_reason,
+    passengers_boarded, capacity
+)
 SELECT
     flight_id,
     departure_airport,
@@ -168,21 +164,26 @@ INSERT INTO AC_HOL_DB.BOOKINGS.RESERVATIONS (
     ticket_price, ancillary_revenue, check_in_status,
     baggage_weight_kg, is_aeroplan_member
 )
-WITH flights_sample AS (
-    SELECT DISTINCT flight_id FROM AC_HOL_DB.OPERATIONS.FLIGHTS LIMIT 2000
+WITH flights_indexed AS (
+    SELECT flight_id, ROW_NUMBER() OVER (ORDER BY flight_id) - 1 AS idx
+    FROM (SELECT DISTINCT flight_id FROM AC_HOL_DB.OPERATIONS.FLIGHTS)
 ),
 base AS (
     SELECT
         ROW_NUMBER() OVER (ORDER BY SEQ8()) AS rn,
         'BK' || LPAD((UNIFORM(1000000, 9999999, RANDOM()))::VARCHAR, 8, '0') AS booking_id,
-        UNIFORM(1, 2000000, RANDOM())::INT AS customer_id,
-        DATEADD('day', -(UNIFORM(1, 365, RANDOM()))::INT, CURRENT_DATE) AS booking_date
+        DATEADD('day', -(UNIFORM(1, 365, RANDOM()))::INT, CURRENT_DATE) AS booking_date,
+        ABS(HASH(RANDOM())) AS rand_val,
+        (UNIFORM(0, 1, RANDOM()) = 1) AS is_aeroplan
     FROM TABLE(GENERATOR(ROWCOUNT => 25000))
 )
 SELECT
     b.booking_id,
-    (SELECT flight_id FROM flights_sample ORDER BY RANDOM() LIMIT 1) AS flight_id,
-    b.customer_id,
+    f.flight_id,
+    -- Ensure Aeroplan members have customer_id in range 1-5000 (matches LOYALTY table)
+    CASE WHEN b.is_aeroplan THEN UNIFORM(1, 5000, RANDOM())::INT
+         ELSE UNIFORM(5001, 2000000, RANDOM())::INT
+    END AS customer_id,
     b.booking_date,
     -- Intentional DQ issue: ~100 NULL cabin_class
     CASE
@@ -204,8 +205,9 @@ SELECT
         ELSE 'NO_SHOW'
     END AS check_in_status,
     ROUND(UNIFORM(5, 32, RANDOM())::FLOAT, 1) AS baggage_weight_kg,
-    (UNIFORM(0, 1, RANDOM()) = 1) AS is_aeroplan_member
-FROM base b;
+    b.is_aeroplan AS is_aeroplan_member
+FROM base b
+JOIN flights_indexed f ON f.idx = MOD(b.rand_val, (SELECT COUNT(DISTINCT flight_id) FROM AC_HOL_DB.OPERATIONS.FLIGHTS));
 
 -- ---------------------------------------------------------------------------
 -- 4. LOYALTY.AEROPLAN_MEMBERS
@@ -217,7 +219,7 @@ CREATE OR REPLACE TABLE AC_HOL_DB.LOYALTY.AEROPLAN_MEMBERS (
     tier             VARCHAR(20),
     points_balance   NUMBER(10),   -- intentional ~30 negative values
     lifetime_miles   NUMBER(12),
-    preferred_seat   VARCHAR(5),
+    preferred_seat   VARCHAR(10),
     email_opted_in   BOOLEAN,
     load_date        TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP
 );
@@ -264,7 +266,7 @@ FROM base;
 --    - 2 columns removed (aircraft_type, delay_reason dropped)
 --    - ~9,500 rows instead of 10,050 (pipeline lag)
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE TABLE AC_HOL_UAT.FLIGHTS (
+CREATE OR REPLACE TABLE AC_HOL_DB.AC_HOL_UAT.FLIGHTS (
     flight_id          VARCHAR(10),
     departure_airport  CHAR(3),
     arrival_airport    CHAR(3),
@@ -280,7 +282,7 @@ CREATE OR REPLACE TABLE AC_HOL_UAT.FLIGHTS (
     load_date          TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO AC_HOL_UAT.FLIGHTS (
+INSERT INTO AC_HOL_DB.AC_HOL_UAT.FLIGHTS (
     flight_id, departure_airport, arrival_airport,
     scheduled_departure, actual_departure,
     scheduled_arrival, actual_arrival,
@@ -317,12 +319,12 @@ INSERT INTO AC_HOL_DB.OPERATIONS.FLIGHT_ROUTES (origin, destination, distance_km
 -- ---------------------------------------------------------------------------
 -- 7. Verify row counts
 -- ---------------------------------------------------------------------------
-SELECT 'OPERATIONS.FLIGHTS'           AS tbl, COUNT(*) AS rows FROM AC_HOL_DB.OPERATIONS.FLIGHTS
+SELECT 'OPERATIONS.FLIGHTS'           AS tbl, COUNT(*) AS row_count FROM AC_HOL_DB.OPERATIONS.FLIGHTS
 UNION ALL
 SELECT 'BOOKINGS.RESERVATIONS',        COUNT(*) FROM AC_HOL_DB.BOOKINGS.RESERVATIONS
 UNION ALL
 SELECT 'LOYALTY.AEROPLAN_MEMBERS',     COUNT(*) FROM AC_HOL_DB.LOYALTY.AEROPLAN_MEMBERS
 UNION ALL
-SELECT 'AC_HOL_UAT.FLIGHTS',           COUNT(*) FROM AC_HOL_UAT.FLIGHTS
+SELECT 'AC_HOL_UAT.FLIGHTS',           COUNT(*) FROM AC_HOL_DB.AC_HOL_UAT.FLIGHTS
 UNION ALL
 SELECT 'OPERATIONS.FLIGHT_ROUTES',     COUNT(*) FROM AC_HOL_DB.OPERATIONS.FLIGHT_ROUTES;

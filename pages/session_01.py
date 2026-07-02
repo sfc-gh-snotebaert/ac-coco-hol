@@ -113,7 +113,7 @@ CoCo generates a clean SQL query with:
 - Revenue aggregated from bookings
 - A comment header explaining the query purpose
 
-You can copy this to a `.sql` file or run it directly in Snowsight.
+You can run it directly in a Snowsight worksheet.
 """
     )
 

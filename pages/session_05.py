@@ -44,36 +44,36 @@ st.markdown("### Exercise 5.1 — Scan for all references before making any chan
 
 coco_prompt(
     "5.1",
-    "Codebase Impact Scan",
+    "Snowflake Object Impact Scan",
     """\
 Before we rename flight_id to flight_number in AC_HOL_DB.OPERATIONS.FLIGHTS,
-scan all SQL files, Python files, and skill files in this project directory.
-Report every file:line that references flight_id.
+scan all Snowflake objects that reference flight_id: views, stored procedures, tasks,
+and dynamic tables in AC_HOL_DB.
+Use INFORMATION_SCHEMA and GET_DDL to inspect each object.
 Classify each reference as: SELECT (read-only), JOIN key, INSERT/UPDATE (write), or FK dependency.
-Output a markdown impact report and save it to reports/impact_flight_id_rename.md\
+Output a markdown impact report.\
 """,
 )
 
 with st.expander(":material/info: Expected output"):
     st.markdown(
         """
-CoCo uses Grep and Read tools to scan the project and produces:
+CoCo queries `INFORMATION_SCHEMA.VIEWS`, `INFORMATION_SCHEMA.PROCEDURES`, and uses `GET_DDL` to inspect dependent objects:
 
 ```markdown
 # Impact Report: Rename flight_id → flight_number
 ## Scope: AC_HOL_DB.OPERATIONS.FLIGHTS
 
-| File | Line | Reference Type | Risk |
-|------|------|----------------|------|
-| sql/regression_test.sql | 14 | SELECT | Low — rename column alias |
-| sql/regression_test.sql | 31 | JOIN key | High — join will break |
-| .cortex/skills/profile-ac-table/SKILL.md | 8 | SELECT | Low — comment mention |
-| setup.sql | 180 | INSERT | Medium — insert column list |
+| Object | Type | Reference Type | Risk |
+|--------|------|----------------|------|
+| AC_HOL_DB.OPERATIONS.V_FLIGHT_SUMMARY | VIEW | SELECT | Low — rename column alias |
+| AC_HOL_DB.OPERATIONS.SP_LOAD_FLIGHTS | PROCEDURE | INSERT | High — insert column list |
+| AC_HOL_DB.AC_HOL_UAT.FLIGHTS | TABLE | JOIN key | High — join will break |
 
 ## Summary
-- 4 references found across 3 files
-- 1 HIGH risk (broken JOIN)
-- Recommended: update sql/regression_test.sql line 31 before deploying rename
+- 3 references found across 3 objects
+- 2 HIGH risk (broken INSERT + JOIN)
+- Recommended: update SP_LOAD_FLIGHTS and regression test before deploying rename
 ```
 """
     )
@@ -146,7 +146,7 @@ st.markdown("---")
 st.markdown("## :material/lightbulb: Key concepts")
 st.markdown(
     """
-- **Impact scan** — CoCo uses Grep + Read tools to find every reference to a column or table across your entire project
+- **Impact scan** — CoCo uses `INFORMATION_SCHEMA` and `GET_DDL` to find every Snowflake object that references a column or table
 - **Risk classification** — References are ranked: JOIN key > INSERT/UPDATE > SELECT — each has a different fix complexity
 - **Zero-downtime rename** — Add new column → populate from old → update dependent objects → drop old column; live queries never break
 - **DMF awareness** — CoCo knows to include DMF removal in the migration plan so monitoring doesn't silently disappear
@@ -169,7 +169,7 @@ st.markdown(
 st.markdown("## :material/check_circle: What you built in this session")
 st.markdown(
     """
-- `reports/impact_flight_id_rename.md` — full impact report with risk classification
+- `reports/impact_flight_id_rename.md` — full impact report with risk classification across Snowflake objects
 - Assessed the consequences of dropping `delay_reason` including DMF removal
 - `sql/migrate_flight_id_rename.sql` — zero-downtime migration script for `flight_id → flight_number`
 """

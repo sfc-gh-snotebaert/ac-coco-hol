@@ -19,9 +19,9 @@ tech_card_row(
         "Build a $release-check command that runs a full pre-release checklist in one prompt",
     ),
     (
-        "webhook",
-        "CoCo Hooks",
-        "PreToolUse hooks intercept tool calls before execution — block dangerous DDL automatically",
+        "notifications_active",
+        "Snowflake Alerts",
+        "Automated DQ alerting using DMF results — fires when a quality check fails",
     ),
     (
         "task_alt",
@@ -44,7 +44,7 @@ coco_prompt(
     "4.1",
     "Create the $release-check Skill",
     """\
-Create a CoCo skill called 'release-check' saved to .cortex/skills/release-check/SKILL.md.
+Create a CoCo skill called 'release-check'.
 The skill takes a table name as input and runs a pre-release checklist:
 1. Row count — report current count and compare to a baseline if available
 2. NULL check — flag any NOT NULL columns that have NULLs
@@ -55,7 +55,7 @@ Output a PASS ✅ / WARN ⚠️ / FAIL ❌ summary table.\
 """,
 )
 
-st.info("Restart your CoCo session after creating the skill to load it.")
+st.info("Start a new CoCo conversation after creating the skill to use it.")
 
 coco_prompt(
     "4.2",
@@ -82,65 +82,79 @@ OVERALL: ❌ FAIL — 2 checks failed. Review before promoting to PROD.\
 
 st.markdown("---")
 
-st.markdown("### Exercise 4.2 — Block dangerous DDL with a hook")
+st.markdown("### Exercise 4.2 — Automate DQ alerting with Snowflake Alerts")
 
 with st.container(border=True):
     st.markdown(
-        ":material/webhook: **About hooks:** A CoCo hook is a shell script that runs "
-        "before or after a tool is executed. A `PreToolUse` hook can inspect the incoming "
-        "tool call and block it (exit code 2) before any damage is done."
+        ":material/notifications_active: **Goal:** Instead of waiting for someone to manually "
+        "run `$release-check`, set up a Snowflake Alert that automatically fires when the "
+        "`NULL_COUNT` DMF on `delay_reason` detects issues — catching problems as soon as data loads."
     )
 
 coco_prompt(
     "4.3",
-    "Create a DDL-Blocking Hook",
+    "Create a DQ Alert on DMF Results",
     """\
-Create a CoCo hook that blocks any SQL containing DROP, ALTER TABLE, TRUNCATE, or CREATE TABLE
-against AC_HOL_DB.OPERATIONS or AC_HOL_DB.BOOKINGS schemas.
-The hook should print a clear error message and log the blocked attempt to /tmp/coco_blocked.log.
-Save the hook to hooks/block-prod-ddl.sh and register it in hooks.json.\
+Create a Snowflake Alert on AC_HOL_DB.OPERATIONS.FLIGHTS that:
+1. Checks the NULL_COUNT DMF result on delay_reason every hour
+2. Fires when NULL count exceeds 0 on rows where status = 'DELAYED'
+3. Uses SYSTEM$SEND_EMAIL to notify the team
+Show the CREATE ALERT SQL and how to enable it.\
 """,
 )
 
-with st.expander(":material/code: Hook script CoCo generates"):
+with st.expander(":material/code: SQL CoCo generates"):
     st.code(
         """\
-#!/bin/bash
-INPUT=$(cat)
-TOOL=$(echo "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_name',''))" 2>/dev/null)
+CREATE OR REPLACE ALERT AC_HOL_DB.OPERATIONS.dq_delay_reason_alert
+  WAREHOUSE = SNOWADHOC
+  SCHEDULE = '60 MINUTE'
+  IF (EXISTS (
+    SELECT 1
+    FROM TABLE(
+      AC_HOL_DB.INFORMATION_SCHEMA.DATA_METRIC_FUNCTION_REFERENCES(
+        ref_entity_name   => 'AC_HOL_DB.OPERATIONS.FLIGHTS',
+        ref_entity_domain => 'TABLE'
+      )
+    )
+    WHERE metric_name = 'NULL_COUNT'
+      AND value > 0
+  ))
+  THEN
+    CALL SYSTEM$SEND_EMAIL(
+      'EMAIL_INTEGRATION',
+      'data-team@aircanada.com',
+      'DQ Alert: delay_reason NULLs detected in FLIGHTS',
+      'NULL_COUNT on delay_reason exceeded threshold. Run $release-check immediately.'
+    );
 
-if [ "$TOOL" = "snowflake_sql_execute" ]; then
-    SQL=$(echo "$INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('tool_input',{}).get('sql','').upper())" 2>/dev/null)
-
-    if echo "$SQL" | grep -qE "(DROP|ALTER TABLE|TRUNCATE|CREATE TABLE).*(OPERATIONS|BOOKINGS)"; then
-        MSG="BLOCKED: DDL against OPERATIONS/BOOKINGS schemas requires a change request."
-        echo "$MSG" >&2
-        echo "$(date): $MSG | SQL: $SQL" >> /tmp/coco_blocked.log
-        exit 2
-    fi
-fi
-exit 0\
+ALTER ALERT AC_HOL_DB.OPERATIONS.dq_delay_reason_alert RESUME;\
 """,
-        language="bash",
+        language="sql",
     )
 
 coco_prompt(
     "4.4",
-    "Test the Hook",
-    "Drop the delay_reason column from AC_HOL_DB.OPERATIONS.FLIGHTS.",
+    "Test the Alert Manually",
+    "How do I manually execute and verify the dq_delay_reason_alert I just created?",
 )
 
-with st.expander(":material/info: Expected behavior"):
+with st.expander(":material/info: Expected output"):
     st.markdown(
         """
-The hook intercepts the `snowflake_sql_execute` call and returns exit code 2, which CoCo
-treats as a hard block. You should see:
+CoCo generates the manual execution command and shows you how to check alert history:
 
-```
-Hook blocked: BLOCKED: DDL against OPERATIONS/BOOKINGS schemas requires a change request.
-```
+```sql
+-- Trigger manually
+EXECUTE ALERT AC_HOL_DB.OPERATIONS.dq_delay_reason_alert;
 
-Check `/tmp/coco_blocked.log` to confirm the attempt was logged.
+-- Check execution history
+SELECT *
+FROM TABLE(AC_HOL_DB.INFORMATION_SCHEMA.ALERT_HISTORY(
+    scheduled_time_range_start => DATEADD('hour', -1, CURRENT_TIMESTAMP())
+))
+ORDER BY scheduled_time DESC;
+```
 """
     )
 
@@ -150,8 +164,8 @@ st.markdown("## :material/lightbulb: Key concepts")
 st.markdown(
     """
 - **`$release-check` skill** — A parameterized skill that runs your pre-release checklist against any table with a single command
-- **PreToolUse hooks** — Shell scripts that run before CoCo executes a tool; exit code 2 = hard block with message; exit code 1 = soft warning
-- **hooks.json** — Located in `~/.snowflake/cortex/hooks/`; registers which hooks run on which tool events
+- **Snowflake Alerts** — Scheduled checks that query DMF results and fire actions (email, notification) when conditions are met
+- **EXECUTE ALERT** — Triggers an alert immediately for testing without waiting for the schedule
 - **Go/no-go gate** — A `$release-check` run produces a clear OVERALL PASS or FAIL, giving the release manager an unambiguous decision signal
 """
 )
@@ -161,10 +175,10 @@ st.markdown(
     """
 | Term | Definition |
 |------|-----------|
-| **CoCo Skill** | Saved instruction set in `.cortex/skills/<name>/SKILL.md`; invoked with `$skill-name` |
-| **Hook** | Shell script that intercepts CoCo tool calls; registered in `hooks.json` |
-| **PreToolUse** | Hook event that fires before a tool executes — can block or modify the call |
-| **Exit code 2** | Hard block — CoCo stops execution and displays the hook's error message to the user |
+| **CoCo Skill** | Saved instruction set invoked with `$skill-name` in any CoCo conversation |
+| **Snowflake Alert** | A Snowflake object that evaluates a SQL condition on a schedule and fires an action |
+| **EXECUTE ALERT** | SQL command to trigger an alert immediately, bypassing the schedule |
+| **Alert history** | `INFORMATION_SCHEMA.ALERT_HISTORY` — query to see past alert executions and outcomes |
 | **Release gate** | An automated checkpoint that must PASS before a pipeline change promotes to PROD |
 """
 )
@@ -174,7 +188,7 @@ st.markdown(
     """
 - `$release-check` skill — pre-release PASS/FAIL checklist for any table
 - Ran the skill on `FLIGHTS` and discovered the 2 failing checks from Session 2
-- `hooks/block-prod-ddl.sh` — DDL protection hook with audit logging
-- Verified the hook blocks a DROP COLUMN attempt in real time
+- `dq_delay_reason_alert` — Snowflake Alert that fires automatically when NULL_COUNT DMF exceeds threshold
+- Verified the alert by running `EXECUTE ALERT` and inspecting alert history
 """
 )

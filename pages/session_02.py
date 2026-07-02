@@ -148,13 +148,12 @@ Create a custom CoCo skill called 'profile-ac-table' that:
 4. Flags numeric columns with negative values
 5. Checks for duplicate primary key candidates
 6. Outputs a PASS/WARN/FAIL status per check
-Save to .cortex/skills/profile-ac-table/SKILL.md\
+Save the skill so CoCo can use it.
 """,
 )
 
 st.info(
-    "**After CoCo creates the skill:** type `/quit` and restart CoCo "
-    "(or open a new session in Desktop) to load the new skill."
+    "**After CoCo creates the skill:** start a new CoCo conversation to load it."
 )
 
 coco_prompt(

@@ -16,7 +16,7 @@ with col1:
 - `$release-check` — pre-release validation checklist skill
 - `sql/regression_test.sql` — automated UAT vs PROD test suite
 - `AGENTS.md` — project governance rules (5 enforced conventions)
-- `hooks/block-prod-ddl.sh` — DDL protection for PROD schemas
+- `dq_delay_reason_alert` — Snowflake Alert that fires on NULL_COUNT threshold breach
 - `reports/impact_flight_id_rename.md` — change impact report
 - `sql/migrate_flight_id_rename.sql` — zero-downtime migration script
 """
@@ -34,7 +34,7 @@ with col2:
 | DMF generation | Automated DQ on every pipeline load |
 | Schema comparison | UAT vs PROD regression gating |
 | `$release-check` skill | Go/no-go decision in 10 seconds |
-| Hooks | Block DDL accidents in PROD |
+| Snowflake Alerts | Automated DQ monitoring that fires when DMF thresholds are breached |
 | Impact analysis | Safe schema evolution before release |
 | `AGENTS.md` rules | Team standards enforced automatically |
 """
@@ -45,8 +45,7 @@ st.markdown("---")
 st.markdown("## :material/arrow_forward: Next steps for your team")
 st.markdown(
     """
-1. **Share skills across the team** — Put `$profile-ac-table` and `$release-check` in a shared
-   GitHub repo and point `~/.snowflake/cortex/skills.json` at it for every team member.
+1. **Share skills with your team** — Put `$profile-ac-table` and `$release-check` in a shared Snowflake stage so every team member can access them from Snowsight CoCo.
 
 2. **Add regression checks to your pipeline** — Run `regression_test.sql` as a step in a
    Snowflake Task before any PROD promotion.
@@ -112,11 +111,9 @@ MODES:        /plan  |  /bypass  |  Shift+Tab to cycle
 FILES:        @path  |  @path$line-range
 TABLES:       #DB.SCHEMA.TABLE
 SKILLS:       $skill-name  (e.g. $profile-ac-table, $release-check)
-BASH:         !command
 COMMANDS:     /help  /status  /skill  /hooks  /agents  /tasks
 SESSION:      /fork  /rewind  /compact  /rename
-TASK BOARD:   Ctrl+D
-CONFIG DIR:   ~/.snowflake/cortex/\
+TASK BOARD:   Ctrl+D\
 """,
     language="text",
 )

@@ -30,58 +30,20 @@ with st.container(border=True):
 """
     )
 
-st.markdown("Run the setup script using the Snowflake CLI:")
-st.code("snow sql -f setup.sql -c <your-connection-name>", language="bash")
+st.markdown(
+    "Copy the contents of the SQL script found "
+    "[here](https://github.com/sfc-gh-snotebaert/ac-coco-hol/blob/main/setup.sql) "
+    "and run it in a Snowsight worksheet."
+)
 
 st.info(
-    "You need a role with CREATE DATABASE privilege. ACCOUNTADMIN works for this lab. "
+    "You need ACCOUNTADMIN role (granted by default on trial accounts). "
     "Execution takes about 30 seconds."
 )
 
 st.markdown("---")
 
-st.markdown("## :material/terminal: Step 2: Launch CoCo and verify your connection")
-
-st.markdown(
-    """
-Open **Cortex Code** (CLI or Desktop). Verify your Snowflake connection is active.
-"""
-)
-
-coco_prompt(
-    "S.1",
-    "Verify Connection",
-    "/status",
-)
-
-with st.expander("Expected output"):
-    st.markdown(
-        """
-You should see your **connection name**, **Snowflake account**, **role**, and **warehouse**.
-
-If you see `No active connection`, run:
-```bash
-cortex --connection <your-connection-name>
-```
-or use the CoCo Desktop **Connection** panel to select your profile.
-"""
-    )
-
-st.markdown("---")
-
-st.markdown("## :material/folder_open: Step 3: Open the lab directory")
-
-st.markdown("Point CoCo at the repository so it can read your project files and AGENTS.md rules.")
-
-st.code("cortex -w /path/to/ac-coco-hol", language="bash")
-
-st.info(
-    "**CoCo Desktop users:** Use **File → Open Folder** and select the `ac-coco-hol` directory."
-)
-
-st.markdown("---")
-
-st.markdown("## :material/explore: Step 4: Explore the lab data")
+st.markdown("## :material/explore: Step 2: Explore the lab data")
 
 st.markdown(
     """
@@ -90,7 +52,7 @@ Before diving into the sessions, get a feel for the data using natural language.
 )
 
 coco_prompt(
-    "S.2",
+    "S.1",
     "Explore the Lab Database",
     "What schemas and tables are in AC_HOL_DB? Give me a one-line description of each table.",
 )
@@ -111,7 +73,7 @@ CoCo queries `INFORMATION_SCHEMA` and returns a summary similar to:
     )
 
 coco_prompt(
-    "S.3",
+    "S.2",
     "Sample a Table",
     "#AC_HOL_DB.OPERATIONS.FLIGHTS Show me 5 sample rows and describe the schema.",
 )
