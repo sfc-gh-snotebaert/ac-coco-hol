@@ -1,0 +1,7 @@
+[theme]
+# Matches port-hol.streamlit.app: steel-blue sidebar, dark navy text, white main
+primaryColor = "#29B5E8"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#E8EDF2"
+textColor = "#1B2659"
+font = "sans serif"
