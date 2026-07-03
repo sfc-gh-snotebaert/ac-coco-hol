@@ -169,7 +169,7 @@ Table: AC_HOL_DB.BOOKINGS.RESERVATIONS (25,000 rows)
 ✅ PASS  — No duplicate booking_id
 ⚠️ WARN  — cabin_class: 0.4% NULLs (100 rows)
 ✅ PASS  — ticket_price: no negative values
-✅ PASS  — booking_date: range 2023-07-01 to 2024-07-01\
+✅ PASS  — booking_date: range 2025-07-03 to 2026-07-03\
 """,
         language="text",
     )

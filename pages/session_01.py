@@ -56,10 +56,10 @@ with st.expander(":material/info: Expected output"):
 CoCo identifies the `FLIGHTS` table, builds a `GROUP BY` query, executes it, and returns
 a table like:
 
-| departure_airport | ON_TIME | DELAYED | CANCELLED | delay_rate_pct |
+| departure_airport | ON_TIME | DELAYED | CANCELLED | DELAY_RATE |
 |---|---|---|---|---|
-| YYZ | 4,812 | 1,247 | 203 | 19.7% |
-| YVR | … | … | … | … |
+| JFK | 363 | 149 | 22 | 19.7% |
+| CUN | … | … | … | … |
 
 Notice: CoCo inferred the date column (`scheduled_departure`) from schema context alone.
 """
@@ -70,7 +70,7 @@ coco_prompt(
     "Worst Delay Routes",
     """\
 Which 10 routes have the highest average delay in minutes?
-Only include routes with at least 50 delayed flights.\
+Only include routes with at least 10 delayed flights.\
 """,
 )
 
@@ -78,7 +78,7 @@ with st.expander(":material/info: Expected output"):
     st.markdown(
         """
 CoCo joins on departure + arrival airports, filters `status = 'DELAYED'`,
-applies `HAVING COUNT(*) >= 50`, and orders by `AVG(delay_minutes) DESC`.
+applies `HAVING COUNT(*) >= 10`, and orders by `AVG(delay_minutes) DESC`.
 """
     )
 
@@ -109,7 +109,7 @@ with st.expander(":material/info: Expected output"):
         """
 CoCo generates a clean SQL query with:
 - A `JOIN` between `FLIGHTS` and `RESERVATIONS` on `flight_id`
-- `AVG(passengers_boarded::FLOAT / NULLIF(capacity, 0))` for safe division
+- `AVG(DIV0NULL(f.PASSENGERS_BOARDED, f.CAPACITY))` for safe division
 - Revenue aggregated from bookings
 - A comment header explaining the query purpose
 

@@ -60,7 +60,7 @@ aircraft AS (
 base AS (
     SELECT
         ROW_NUMBER() OVER (ORDER BY SEQ8()) AS rn,
-        DATEADD('minute', (UNIFORM(0, 87600, RANDOM()))::INT, '2024-07-01'::TIMESTAMP_NTZ) AS sched_dep,
+        DATEADD('minute', (UNIFORM(0, 131039, RANDOM()))::INT, '2026-04-01'::TIMESTAMP_NTZ) AS sched_dep,
         UNIFORM(1, 20, RANDOM()) AS dep_idx,
         UNIFORM(1, 20, RANDOM()) AS arr_idx,
         UNIFORM(1, 7, RANDOM()) AS ac_idx,

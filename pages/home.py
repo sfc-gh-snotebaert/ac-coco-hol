@@ -58,7 +58,7 @@ with col1:
 - `$release-check` — pre-release validation checklist skill
 - `sql/regression_test.sql` — automated UAT vs PROD test suite
 - `AGENTS.md` — project governance rules
-- `hooks/block-prod-ddl.sh` — DDL protection for PROD schemas
+- `dq_delay_reason_alert` — automated DQ alert on NULL_COUNT DMF
 - `reports/impact_flight_id_rename.md` — change impact report
 """
         )
