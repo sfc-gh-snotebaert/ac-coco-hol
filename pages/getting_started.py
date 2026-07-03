@@ -75,7 +75,7 @@ CoCo queries `INFORMATION_SCHEMA` and returns a summary similar to:
 coco_prompt(
     "S.2",
     "Sample a Table",
-    "Show me 5 sample rows from AC_HOL_DB.OPERATIONS.FLIGHTS and describe the schema.",
+    "Show me 5 sample rows from @AC_HOL_DB.OPERATIONS.FLIGHTS and describe the schema.",
 )
 
 st.success("Environment ready. Navigate to **Session 1** to start the lab.")
