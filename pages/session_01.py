@@ -20,7 +20,7 @@ tech_card_row(
     ),
     (
         "schema",
-        "Schema Context (#DB.S.T)",
+        "Schema Context (@DB.S.T)",
         "CoCo reads INFORMATION_SCHEMA to understand table structure in real-time",
     ),
     (
@@ -140,7 +140,7 @@ st.markdown("---")
 st.markdown("## :material/lightbulb: Key concepts")
 st.markdown(
     """
-- **Schema context** — CoCo reads `INFORMATION_SCHEMA` automatically when you reference a table with `#DB.SCHEMA.TABLE`
+- **Schema context** — CoCo reads `INFORMATION_SCHEMA` automatically when you reference a table with `@DB.SCHEMA.TABLE`
 - **Natural language SQL** — No need to remember column names; describe the business question and CoCo writes the SQL
 - **`$sql-author` skill** — Produces annotated, production-ready SQL with comments, safe division guards, and formatting conventions
 - **Prompt refinement** — If the first result isn't what you need, add constraints in the next turn ("only include routes with at least 50 flights")

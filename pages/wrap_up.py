@@ -109,7 +109,7 @@ st.code(
     """\
 MODES:        /plan  |  /bypass  |  Shift+Tab to cycle
 FILES:        @path  |  @path$line-range
-TABLES:       #DB.SCHEMA.TABLE
+TABLES:       @DB.SCHEMA.TABLE
 SKILLS:       $skill-name  (e.g. $profile-ac-table, $release-check)
 COMMANDS:     /help  /status  /skill  /hooks  /agents  /tasks
 SESSION:      /fork  /rewind  /compact  /rename
