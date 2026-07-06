@@ -83,7 +83,7 @@ st.markdown(
     """
 The only prerequisite for this lab is a **Snowflake trial account** in the **AWS US West** region.
 
-[Sign up for a free Snowflake trial →](https://trial.snowflake.com)
+[Sign up for a free Snowflake trial →](https://signup.snowflake.com/?t=3a0824c49ea7d343d53cdd4c42788bfa378b53f7cd06a7a3c7149456c0e15d9e)
 
 The **Getting Started** page walks through environment setup step by step.
 """
