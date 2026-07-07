@@ -97,7 +97,7 @@ coco_prompt(
     "1.3",
     "Load Factor Analysis",
     """\
-$sql-author Write a query to calculate load factor (passengers_boarded / capacity)
+/sql-author Write a query to calculate load factor (passengers_boarded / capacity)
 by aircraft_type and route (departure_airport + arrival_airport).
 Include average ticket revenue per seat from BOOKINGS.RESERVATIONS.
 Sort by load factor descending.\
