@@ -56,10 +56,10 @@ with st.expander(":material/info: Expected output"):
 CoCo identifies the `FLIGHTS` table, builds a `GROUP BY` query, executes it, and returns
 a table like:
 
-| departure_airport | ON_TIME | DELAYED | CANCELLED | DELAY_RATE |
+| departure_airport | ON_TIME | DELAYED | CANCELLED | delay_rate_pct |
 |---|---|---|---|---|
-| JFK | 363 | 149 | 22 | 19.7% |
-| CUN | … | … | … | … |
+| YYZ | ~350 | ~130 | ~20 | ~27% |
+| YVR | … | … | … | … |
 
 Notice: CoCo inferred the date column (`scheduled_departure`) from schema context alone.
 """
@@ -143,7 +143,7 @@ st.markdown(
 - **Schema context** — CoCo reads `INFORMATION_SCHEMA` automatically when you reference a table with `@DB.SCHEMA.TABLE`
 - **Natural language SQL** — No need to remember column names; describe the business question and CoCo writes the SQL
 - **`$sql-author` skill** — Produces annotated, production-ready SQL with comments, safe division guards, and formatting conventions
-- **Prompt refinement** — If the first result isn't what you need, add constraints in the next turn ("only include routes with at least 50 flights")
+- **Prompt refinement** — If the first result isn't what you need, add constraints in the next turn ("only include routes with at least 10 delayed flights")
 """
 )
 

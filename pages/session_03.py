@@ -62,8 +62,8 @@ with st.expander(":material/warning: Issues CoCo should flag"):
 |-------|------|-----|--------|
 | Row count | ~10,050 | ~9,500 | ❌ FAIL — 550 row gap |
 | Columns | 14 | 12 | ❌ FAIL — missing `aircraft_type`, `delay_reason` |
-| Cancellation rate | ~3% | ~3% | ✅ PASS |
-| Avg delay_minutes | ~62 | ~61 | ✅ PASS |
+| Cancellation rate | similar | similar | ✅ PASS |
+| Avg delay_minutes | similar | similar | ✅ PASS |
 
 CoCo queries `INFORMATION_SCHEMA.COLUMNS` for schema diffs and runs aggregates on both tables.
 """

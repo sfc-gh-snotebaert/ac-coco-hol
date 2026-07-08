@@ -166,10 +166,10 @@ with st.expander(":material/info: Expected output"):
     st.code(
         """\
 Table: AC_HOL_DB.BOOKINGS.RESERVATIONS (25,000 rows)
-✅ PASS  — No duplicate booking_id
-⚠️ WARN  — cabin_class: 0.4% NULLs (100 rows)
+⚠️ WARN  — booking_id: ~45 duplicate values detected
+⚠️ WARN  — cabin_class: ~0.4% NULLs (~100 rows)
 ✅ PASS  — ticket_price: no negative values
-✅ PASS  — booking_date: range 2025-07-03 to 2026-07-03\
+✅ PASS  — booking_date: spans ~12 months\
 """,
         language="text",
     )

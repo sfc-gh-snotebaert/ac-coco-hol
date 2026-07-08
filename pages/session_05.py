@@ -58,7 +58,7 @@ Output a markdown impact report.\
 with st.expander(":material/info: Expected output"):
     st.markdown(
         """
-CoCo queries `INFORMATION_SCHEMA.VIEWS`, `INFORMATION_SCHEMA.PROCEDURES`, and uses `GET_DDL` to inspect dependent objects:
+CoCo queries `INFORMATION_SCHEMA` and uses `GET_DDL` to inspect dependent objects:
 
 ```markdown
 # Impact Report: Rename flight_id → flight_number
@@ -66,15 +66,17 @@ CoCo queries `INFORMATION_SCHEMA.VIEWS`, `INFORMATION_SCHEMA.PROCEDURES`, and us
 
 | Object | Type | Reference Type | Risk |
 |--------|------|----------------|------|
-| AC_HOL_DB.OPERATIONS.V_FLIGHT_SUMMARY | VIEW | SELECT | Low — rename column alias |
-| AC_HOL_DB.OPERATIONS.SP_LOAD_FLIGHTS | PROCEDURE | INSERT | High — insert column list |
-| AC_HOL_DB.AC_HOL_UAT.FLIGHTS | TABLE | JOIN key | High — join will break |
+| AC_HOL_DB.AC_HOL_UAT.FLIGHTS | TABLE | Same column name | High — downstream queries will break |
+| AC_HOL_DB.BOOKINGS.RESERVATIONS | TABLE | JOIN key (flight_id) | High — booking lookups will fail |
 
 ## Summary
-- 3 references found across 3 objects
-- 2 HIGH risk (broken INSERT + JOIN)
-- Recommended: update SP_LOAD_FLIGHTS and regression test before deploying rename
+- 2 references found across 2 objects
+- 2 HIGH risk (join keys that would break)
+- Recommended: update all JOINs referencing flight_id before deploying rename
 ```
+
+**Note:** If your lab has additional views or procedures referencing `flight_id`,
+CoCo will also flag those in the report.
 """
     )
 

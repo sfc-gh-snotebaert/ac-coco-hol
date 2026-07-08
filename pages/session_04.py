@@ -69,7 +69,7 @@ with st.expander(":material/info: Expected output"):
 Pre-Release Check: AC_HOL_DB.OPERATIONS.FLIGHTS
 ================================================
 ✅ PASS  — Row count: 10,050
-❌ FAIL  — delay_reason: 198 NULLs where status = 'DELAYED'
+❌ FAIL  — delay_reason: ~200 NULLs where status = 'DELAYED'
 ❌ FAIL  — flight_id: 50 duplicate values detected
 ✅ PASS  — load_date: most recent row < 1 hour ago
 ✅ PASS  — delay_minutes: no negative values
